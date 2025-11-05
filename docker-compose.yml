@@ -1,0 +1,49 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: simple-notify-postgres
+    environment:
+      POSTGRES_DB: simple_notify
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5333:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Express Application
+  app:
+    build: .
+    container_name: simple-notify-app
+    environment:
+      # Server Configuration
+      PORT: 3333
+      
+      # AWS Configuration (you need to provide these)
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
+      AWS_SNS_PLATFORM_APPLICATION_ARN_IOS: ${AWS_SNS_PLATFORM_APPLICATION_ARN_IOS}
+      AWS_SNS_PLATFORM_APPLICATION_ARN_ANDROID: ${AWS_SNS_PLATFORM_APPLICATION_ARN_ANDROID}
+      
+      # Database Configuration
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: simple_notify
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+    ports:
+      - "3333:3333"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

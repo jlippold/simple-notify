@@ -18,7 +18,85 @@ Express REST API for AWS SNS Mobile Push notifications with PostgreSQL database 
 - PostgreSQL database
 - AWS Account with SNS configured
 
+**OR**
+
+- Docker and Docker Compose (for Docker installation)
+
 ## Installation
+
+### Option 1: Docker Installation (Recommended)
+
+The easiest way to run simple-notify is using Docker. This will automatically set up both the application and PostgreSQL database.
+
+1. Clone the repository:
+```bash
+git clone https://github.com/jlippold/simple-notify.git
+cd simple-notify
+```
+
+2. Create a `.env` file with your AWS credentials:
+```bash
+# Copy the example file
+cp .env.example .env
+
+# Edit .env and add your AWS credentials
+# You can leave the database settings as-is for Docker
+```
+
+Required environment variables for Docker:
+```env
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=your_access_key_id
+AWS_SECRET_ACCESS_KEY=your_secret_access_key
+AWS_SNS_PLATFORM_APPLICATION_ARN_IOS=arn:aws:sns:us-east-1:123456789012:app/APNS/YourIOSApp
+AWS_SNS_PLATFORM_APPLICATION_ARN_ANDROID=arn:aws:sns:us-east-1:123456789012:app/GCM/YourAndroidApp
+```
+
+3. Start the application with Docker Compose:
+```bash
+docker compose up -d
+```
+
+This will:
+- Start PostgreSQL on port **5333** (mapped from container port 5432)
+- Start the Express server on port **3333**
+- Automatically create the database
+- Set up networking between containers
+
+4. Run database migrations:
+```bash
+docker compose exec app npm run migrate
+```
+
+5. Check if the application is running:
+```bash
+curl http://localhost:3333/health
+```
+
+**Port Configuration:**
+- The Express server runs on port **3333** (accessible at `http://localhost:3333`)
+- PostgreSQL runs on port **5333** (accessible at `localhost:5333`)
+
+**Docker Management Commands:**
+
+```bash
+# View logs
+docker compose logs -f
+
+# View app logs only
+docker compose logs -f app
+
+# Stop the application
+docker compose down
+
+# Stop and remove all data (including database)
+docker compose down -v
+
+# Rebuild after code changes
+docker compose up -d --build
+```
+
+### Option 2: Manual Installation
 
 1. Clone the repository:
 ```bash
