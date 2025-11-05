@@ -8,14 +8,21 @@
     "dev": "node --watch src/index.js",
     "migrate": "node src/migrations/run.js"
   },
-  "keywords": ["aws", "sns", "push", "notifications", "express"],
+  "keywords": [
+    "aws",
+    "sns",
+    "push",
+    "notifications",
+    "express"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
     "@aws-sdk/client-sns": "^3.651.0",
+    "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "pg": "^8.12.0",
-    "dotenv": "^16.4.5"
+    "express-rate-limit": "^8.2.1",
+    "pg": "^8.12.0"
   },
   "engines": {
     "node": ">=20.0.0"

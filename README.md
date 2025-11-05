@@ -8,6 +8,7 @@ Express REST API for AWS SNS Mobile Push notifications with PostgreSQL database 
 - **AWS SNS Mobile Push** using `@aws-sdk/client-sns`
 - **PostgreSQL Database** via `pg` for device management
 - Support for **iOS (APNS)** and **Android (FCM/GCM)** push notifications
+- **Rate Limiting** to protect against abuse (100 requests per 15 minutes per IP)
 - No authentication layer (as specified)
 - Simple REST API with two endpoints
 
