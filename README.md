@@ -40,10 +40,10 @@ cd simple-notify
 cp .env.example .env
 
 # Edit .env and add your AWS credentials
-# You can leave the database settings as-is for Docker
+# Database settings are pre-configured in docker-compose.yml
 ```
 
-Required environment variables for Docker:
+Required environment variables for Docker (add these to your `.env` file):
 ```env
 AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=your_access_key_id
@@ -51,6 +51,8 @@ AWS_SECRET_ACCESS_KEY=your_secret_access_key
 AWS_SNS_PLATFORM_APPLICATION_ARN_IOS=arn:aws:sns:us-east-1:123456789012:app/APNS/YourIOSApp
 AWS_SNS_PLATFORM_APPLICATION_ARN_ANDROID=arn:aws:sns:us-east-1:123456789012:app/GCM/YourAndroidApp
 ```
+
+**Note:** Docker Compose will automatically read these variables from your `.env` file. The database connection settings are pre-configured in `docker-compose.yml`.
 
 3. Start the application with Docker Compose:
 ```bash
