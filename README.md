@@ -213,7 +213,9 @@ DB_PASSWORD=postgres
 1. Go to [Firebase Console](https://console.firebase.google.com/)
 2. Select or create your project
 3. Go to **Project Settings** → **Cloud Messaging**
-4. Copy the **Server key** (or create a new one if using Firebase Cloud Messaging API V1)
+4. Copy the **Server key** (for use with Firebase Cloud Messaging API V1)
+
+> **Note:** The Firebase Cloud Messaging API V1 is the current and recommended API for sending messages via FCM. 
 
 ### Step 4: Set Up IAM Permissions
 

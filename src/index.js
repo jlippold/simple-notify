@@ -1,6 +1,7 @@
 const express = require('express');
 const rateLimit = require('express-rate-limit');
 const pushRoutes = require('./routes/push');
+const statusRoutes = require('./routes/status');
 require('dotenv').config();
 
 const app = express();
@@ -24,6 +25,7 @@ app.get('/health', (req, res) => {
 
 // Routes
 app.use('/push', pushRoutes);
+app.use('/', statusRoutes);
 
 // 404 handler
 app.use((req, res) => {
