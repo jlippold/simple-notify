@@ -5,9 +5,10 @@ Express REST API for AWS SNS Mobile Push notifications with PostgreSQL database 
 ## Features
 
 - **Node.js 20+** with Express.js
-- **AWS SNS Mobile Push** using `@aws-sdk/client-sns`
+- **AWS SNS Mobile Push** for iOS (APNS)
+- **Firebase Cloud Messaging (FCM) HTTP v1 API** for Android push notifications
 - **PostgreSQL Database** via `pg` for device management
-- Support for **iOS (APNS)** and **Android (FCM/GCM)** push notifications
+- Support for **iOS (APNS via SNS)** and **Android (FCM HTTP v1)** push notifications
 - **Rate Limiting** to protect against abuse (100 requests per 15 minutes per IP)
 - No authentication layer (as specified)
 - Simple REST API with two endpoints
@@ -43,13 +44,21 @@ cp .env.example .env
 # Database settings are pre-configured in docker-compose.yml
 ```
 
+
+
 Required environment variables for Docker (add these to your `.env` file):
 ```env
+# AWS SNS for iOS
 AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=your_access_key_id
 AWS_SECRET_ACCESS_KEY=your_secret_access_key
 AWS_SNS_PLATFORM_APPLICATION_ARN_IOS=arn:aws:sns:us-east-1:123456789012:app/APNS/YourIOSApp
-AWS_SNS_PLATFORM_APPLICATION_ARN_ANDROID=arn:aws:sns:us-east-1:123456789012:app/GCM/YourAndroidApp
+
+# FCM for Android (HTTP v1, no JSON file needed)
+FCM_PROJECT_ID=your-firebase-project-id
+GCP_CLIENT_EMAIL=your-service-account@your-firebase-project-id.iam.gserviceaccount.com
+GCP_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----\n"
+GCP_TOKEN_URI=https://oauth2.googleapis.com/token
 ```
 
 **Note:** Docker Compose will automatically read these variables from your `.env` file. The database connection settings are pre-configured in `docker-compose.yml`.
@@ -140,12 +149,19 @@ Edit the `.env` file with your configuration:
 # Server Configuration
 PORT=3000
 
-# AWS Configuration
+
+# AWS SNS for iOS
 AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=your_access_key_id
 AWS_SECRET_ACCESS_KEY=your_secret_access_key
 AWS_SNS_PLATFORM_APPLICATION_ARN_IOS=arn:aws:sns:us-east-1:123456789012:app/APNS/YourIOSApp
-AWS_SNS_PLATFORM_APPLICATION_ARN_ANDROID=arn:aws:sns:us-east-1:123456789012:app/GCM/YourAndroidApp
+
+
+# FCM for Android (HTTP v1, no JSON file needed)
+FCM_PROJECT_ID=your-firebase-project-id
+GCP_CLIENT_EMAIL=your-service-account@your-firebase-project-id.iam.gserviceaccount.com
+GCP_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----\n"
+GCP_TOKEN_URI=https://oauth2.googleapis.com/token
 
 # Database Configuration
 DB_HOST=localhost
@@ -197,25 +213,23 @@ DB_PASSWORD=postgres
    - Download and open in Keychain Access
    - Export as `.p12` with a password
 
-### Step 3: Configure Platform Applications for Android (FCM)
 
-1. Go to **AWS SNS Console** → **Mobile** → **Push notifications**
-2. Click **Create platform application**
-3. Configure for Android:
-   - **Application name**: YourAndroidApp
-   - **Push notification platform**: Google Firebase Cloud Messaging (FCM)
-   - **Server key**: Your FCM server key
-4. Click **Create platform application**
-5. Copy the **ARN** and add it to your `.env` as `AWS_SNS_PLATFORM_APPLICATION_ARN_ANDROID`
-
-#### Getting FCM Server Key:
+### Step 3: Configure Firebase Cloud Messaging (FCM) for Android
 
 1. Go to [Firebase Console](https://console.firebase.google.com/)
 2. Select or create your project
-3. Go to **Project Settings** → **Cloud Messaging**
-4. Copy the **Server key** (for use with Firebase Cloud Messaging API V1)
 
-> **Note:** The Firebase Cloud Messaging API V1 is the current and recommended API for sending messages via FCM. 
+3. Go to **Project Settings** → **Service Accounts**
+4. Click **Generate new private key** to download your service account JSON file (you only need to do this once to copy the values)
+5. Open the JSON file and copy these fields into your `.env`:
+  - `client_email` → `GCP_CLIENT_EMAIL`
+  - `private_key` → `GCP_PRIVATE_KEY` (wrap in double quotes, replace real newlines with `\n`)
+  - `project_id` → `FCM_PROJECT_ID`
+  - `token_uri` → `GCP_TOKEN_URI` (usually `https://oauth2.googleapis.com/token`)
+6. In **APIs & Services** > **Enabled APIs & services**, ensure **Firebase Cloud Messaging API** is enabled
+7. Note your **Project ID** (found in Project Settings > General) and set it as `FCM_PROJECT_ID` in your `.env`
+
+> **Note:** AWS SNS is no longer used for Android. All Android push notifications are sent directly to FCM using the HTTP v1 API and Google service account environment variables. You do NOT need to mount or reference a service account JSON file in Docker.
 
 ### Step 4: Set Up IAM Permissions
 
@@ -258,6 +272,9 @@ CREATE TABLE devices (
 
 ## API Endpoints
 
+⚡️  [log] - Push registration success, token: {"value":"68B8F189BD29739D27D1A8D4C31347C7E610E7CD54519BFCA29DBB3AEB138748"}
+
+
 ### 1. Register Device - `POST /push/register`
 
 Register a device token for push notifications.
@@ -297,19 +314,20 @@ Register a device token for push notifications.
 
 ```bash
 # Register iOS device
-curl -X POST http://localhost:3000/push/register \
+curl -X POST http://localhost:3333/push/register \
   -H "Content-Type: application/json" \
   -d '{
-    "device_token": "740f4707bebcf74f9b7c25d48e3358945f6aa01da5ddb387462c7eaf61bb78ad",
+    "device_token": "68B8F189BD29739D27D1A8D4C31347C7E610E7CD54519BFCA29DBB3AEB138748",
     "platform": "ios",
     "user_id": "user123"
   }'
 
+
 # Register Android device
-curl -X POST http://localhost:3000/push/register \
+curl -X POST http://localhost:3333/push/register \
   -H "Content-Type: application/json" \
   -d '{
-    "device_token": "fGvY8xK3Rq2:APA91bF...",
+    "device_token": "e2TR8g3-SbOqQHMq5mGJLo:APA91bEcK9mxi9SMoIiAU1Sap3tKG71RSmU8fDgY7LkwIXtAfDbWHJxYuQf0SnFg41nESgjI0oTjaIOhdiqWWU5JCGtOeNm0SC9OxHC0jOuJwj2xGgMi_n0",
     "platform": "android",
     "user_id": "user123"
   }'
@@ -322,7 +340,7 @@ Send a push notification to a device or all devices associated with a user.
 **Request Body:**
 ```json
 {
-  "device_token": "device-token-from-client",
+  "device_token": "68B8F189BD29739D27D1A8D4C31347C7E610E7CD54519BFCA29DBB3AEB138748",
   "message": "Your notification message",
   "title": "Notification Title",
   "data": {
@@ -369,11 +387,14 @@ Send a push notification to a device or all devices associated with a user.
 **cURL Examples:**
 
 ```bash
-# Send to specific device by token
-curl -X POST http://localhost:3000/push/send \
+
+
+
+# Send to specific device by token (iOS)
+curl -X POST http://localhost:3333/push/send \
   -H "Content-Type: application/json" \
   -d '{
-    "device_token": "740f4707bebcf74f9b7c25d48e3358945f6aa01da5ddb387462c7eaf61bb78ad",
+    "device_token": "68B8F189BD29739D27D1A8D4C31347C7E610E7CD54519BFCA29DBB3AEB138748",
     "message": "Hello from simple-notify!",
     "title": "Welcome",
     "data": {
@@ -382,8 +403,22 @@ curl -X POST http://localhost:3000/push/send \
     }
   }'
 
-# Send to all devices of a user
-curl -X POST http://localhost:3000/push/send \
+# Send to specific device by token (Android)
+curl -X POST http://localhost:3333/push/send \
+  -H "Content-Type: application/json" \
+  -d '{
+    "device_token": "e2TR8g3-SbOqQHMq5mGJLo:APA91bEcK9mxi9SMoIiAU1Sap3tKG71RSmU8fDgY7LkwIXtAfDbWHJxYuQf0SnFg41nESgjI0oTjaIOhdiqWWU5JCGtOeNm0SC9OxHC0jOuJwj2xGgMi_n0",
+    "message": "Hello from simple-notify!",
+    "title": "Welcome",
+    "data": {
+      "action": "open_screen",
+      "screen": "home"
+    }
+  }'
+
+
+# Send to all devices of a user (Android)
+curl -X POST http://localhost:3333/push/send \
   -H "Content-Type: application/json" \
   -d '{
     "user_id": "user123",
@@ -392,7 +427,7 @@ curl -X POST http://localhost:3000/push/send \
   }'
 
 # Send with custom data
-curl -X POST http://localhost:3000/push/send \
+curl -X POST http://localhost:3333/push/send \
   -H "Content-Type: application/json" \
   -d '{
     "user_id": "user123",
@@ -419,7 +454,7 @@ Check if the server is running.
 
 **cURL Example:**
 ```bash
-curl http://localhost:3000/health
+curl http://localhost:3333/health
 ```
 
 ## Testing
@@ -433,12 +468,12 @@ curl http://localhost:3000/health
 
 2. **Check health:**
    ```bash
-   curl http://localhost:3000/health
+   curl http://localhost:3333/health
    ```
 
 3. **Register a test device:**
    ```bash
-   curl -X POST http://localhost:3000/push/register \
+   curl -X POST http://localhost:3333/push/register \
      -H "Content-Type: application/json" \
      -d '{
        "device_token": "test-device-token",
@@ -449,7 +484,7 @@ curl http://localhost:3000/health
 
 4. **Send a test notification:**
    ```bash
-   curl -X POST http://localhost:3000/push/send \
+   curl -X POST http://localhost:3333/push/send \
      -H "Content-Type: application/json" \
      -d '{
        "device_token": "test-device-token",
@@ -513,10 +548,9 @@ FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
    - Check database credentials in `.env`
    - Ensure the database exists
 
-4. **AWS credentials error**
-   - Verify AWS credentials in `.env`
-   - Ensure IAM user has SNS permissions
-   - Check AWS region is correct
+4. **AWS or FCM credentials error**
+  - For iOS: Verify AWS credentials in `.env` and IAM permissions
+  - For Android: Verify all FCM/Google service account environment variables (`FCM_PROJECT_ID`, `GCP_CLIENT_EMAIL`, `GCP_PRIVATE_KEY`, `GCP_TOKEN_URI`) are set in `.env`, and that the FCM API is enabled in your Google Cloud project
 
 ## Project Structure
 
@@ -531,7 +565,8 @@ simple-notify/
 │   ├── routes/
 │   │   └── push.js              # Push notification routes
 │   ├── services/
-│   │   └── snsService.js        # AWS SNS service wrapper
+│   │   └── snsService.js        # AWS SNS service wrapper (iOS)
+│   │   └── fcmService.js        # FCM HTTP v1 service wrapper (Android)
 │   └── index.js                 # Express server
 ├── .env.example                 # Environment variables template
 ├── .gitignore

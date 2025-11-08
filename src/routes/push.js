@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db/pool');
 const snsService = require('../services/snsService');
+const fcmService = require('../services/fcmService');
 
 // POST /push/register - Register a device for push notifications
 router.post('/register', async (req, res) => {
@@ -21,8 +22,12 @@ router.post('/register', async (req, res) => {
       });
     }
 
-    // Register device with AWS SNS
-    const endpointArn = await snsService.registerDevice(device_token, platform);
+
+    // For iOS, register with SNS; for Android, no endpointArn needed
+    let endpointArn = null;
+    if (platform === 'ios') {
+      endpointArn = await snsService.registerDevice(device_token, platform);
+    }
 
     // Store or update device in database
     const query = `
@@ -96,17 +101,31 @@ router.post('/send', async (req, res) => {
       });
     }
 
+
     // Send notifications to all found devices
     const notifications = [];
     const errors = [];
 
     for (const device of result.rows) {
       try {
-        const messageId = await snsService.sendPushNotification(
-          device.endpoint_arn,
-          message,
-          { title, ...data }
-        );
+        let messageId;
+        if (device.platform === 'android') {
+          // Use FCM HTTP v1 API for Android
+          messageId = await fcmService.sendPushNotificationFCM(
+            device.device_token,
+            message,
+            { title, data }
+          );
+        } else if (device.platform === 'ios') {
+          // Use SNS for iOS
+          messageId = await snsService.sendPushNotification(
+            device.endpoint_arn,
+            message,
+            { title, ...data }
+          );
+        } else {
+          throw new Error('Unknown platform');
+        }
         notifications.push({
           device_token: device.device_token,
           platform: device.platform,

@@ -32,12 +32,20 @@ services:
       AWS_SNS_PLATFORM_APPLICATION_ARN_IOS: ${AWS_SNS_PLATFORM_APPLICATION_ARN_IOS}
       AWS_SNS_PLATFORM_APPLICATION_ARN_ANDROID: ${AWS_SNS_PLATFORM_APPLICATION_ARN_ANDROID}
       
+      # FCM / Google Service Account for Android Push
+      # Google Cloud Configuration
+      FCM_PROJECT_ID: ${FCM_PROJECT_ID}
+      GCP_CLIENT_EMAIL: ${GCP_CLIENT_EMAIL}
+      GCP_PRIVATE_KEY: ${GCP_PRIVATE_KEY}
+      GCP_TOKEN_URI: ${GCP_TOKEN_URI}
+
       # Database Configuration
       DB_HOST: postgres
       DB_PORT: 5432
       DB_NAME: simple_notify
       DB_USER: postgres
       DB_PASSWORD: postgres
+
     ports:
       - "3333:3333"
     depends_on:
